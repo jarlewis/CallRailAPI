@@ -86,25 +86,61 @@ const CallrailListAccountsDashboard = () => {
   const fetchAccounts = async () => {
     setLoading(true);
     setError(null);
+    console.log('Attempting to fetch accounts...'); // Debug log
+
+    if (!apiKey) {
+      setError('API key is required');
+      setLoading(false);
+      return;
+    }
 
     try {
-      const response = await fetch(`https://api.callrail.com/v3/a.json?page=${accountPage}&sort=${accountSortOrder === 'asc' ? 'name' : '-name'}${accountFilter !== 'all' ? `&hipaa_account=${accountFilter === 'hipaa'}` : ''}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Token token=${apiKey}`,
-          'Content-Type': 'application/json',
-        },
+      const url = `/api/v3/a.json?page=${accountPage}&sort=${accountSortOrder === 'asc' ? 'name' : '-name'}${accountFilter !== 'all' ? `&hipaa_account=${accountFilter === 'hipaa'}` : ''}`;
+      console.log('Request URL:', url); // Debug log
+      
+      const headers = new Headers({
+        'Authorization': `Token token=${apiKey}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       });
 
+      console.log('Request headers:', Object.fromEntries(headers.entries())); // Debug log
+
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: headers,
+        credentials: 'omit'
+      });
+
+      console.log('Response status:', response.status);
+      const responseHeaders = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+      console.log('Response headers:', responseHeaders);
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Error response:', errorText); // Debug log
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('Response data:', data); // Debug log
+      
+      if (!data || !Array.isArray(data.accounts)) {
+        throw new Error('Invalid response format from API');
+      }
+
       setAccounts(data.accounts);
       setTotalPages(data.total_pages || 1);
     } catch (err) {
-      setError(err.message);
+      console.error('Fetch error:', err); // Debug log
+      if (err.message.includes('Failed to fetch')) {
+        setError('Unable to connect to CallRail API. Please check your internet connection and ensure you have the correct API permissions.');
+      } else {
+        setError(err.message || 'Failed to fetch accounts. Please check your API key and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -116,16 +152,19 @@ const CallrailListAccountsDashboard = () => {
     setError(null);
 
     try {
-      const response = await fetch(`https://api.callrail.com/v3/a/${accountId}/companies.json?status=active`, {
+      const response = await fetch(`/api/v3/a/${accountId}/companies.json?status=active`, {
         method: 'GET',
         headers: {
           'Authorization': `Token token=${apiKey}`,
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
+        credentials: 'omit'
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
@@ -143,16 +182,19 @@ const CallrailListAccountsDashboard = () => {
     setError(null);
 
     try {
-      const response = await fetch(`https://api.callrail.com/v3/a/${accountId}/companies/${companyId}.json`, {
+      const response = await fetch(`/api/v3/a/${accountId}/companies/${companyId}.json`, {
         method: 'GET',
         headers: {
           'Authorization': `Token token=${apiKey}`,
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
+        credentials: 'omit'
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
@@ -170,16 +212,19 @@ const CallrailListAccountsDashboard = () => {
     setError(null);
 
     try {
-      const response = await fetch(`https://api.callrail.com/v3/a/${accountId}/trackers.json?company_id=${companyId}&status=${trackerFilter}&page=${trackerPage}&search=${encodeURIComponent(trackerSearch)}`, {
+      const response = await fetch(`/api/v3/a/${accountId}/trackers.json?company_id=${companyId}&status=${trackerFilter}&page=${trackerPage}&search=${encodeURIComponent(trackerSearch)}`, {
         method: 'GET',
         headers: {
           'Authorization': `Token token=${apiKey}`,
           'Content-Type': 'application/json',
+          'Accept': 'application/json'
         },
+        credentials: 'omit'
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
 
       const data = await response.json();
@@ -198,12 +243,13 @@ const CallrailListAccountsDashboard = () => {
     setError(null);
 
     try {
-      const response = await fetch(`https://api.callrail.com/v3/a/${accountId}/trackers/${trackerId}.json`, {
+      const response = await fetch(`/api/v3/a/${accountId}/trackers/${trackerId}.json`, {
         method: 'GET',
         headers: {
           'Authorization': `Token token=${apiKey}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'same-origin'
       });
 
       if (!response.ok) {
